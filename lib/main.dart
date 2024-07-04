@@ -30,29 +30,46 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  KeyPair? keyPair;
+  String? result;
+
+  @override
+  void initState() {
+    super.initState();
+    initKeypair();
+  }
+
+  Future<void> initKeypair() async {
+    Wallet wallet = await Wallet.from(
+        'manage dilemma chalk burden evidence prefer toilet icon wine horse trust tortoise');
+    final pair = await wallet.getKeyPair();
+    setState(() {
+      keyPair = pair;
+    });
+  }
+
   Future<void> _establishTrustline() async {
-    final stellarSDK = StellarSDK.TESTNET;
-
-    final keyPair = KeyPair.random();
+    final stellarSDK = StellarSDK.PUBLIC;
     final asset = Asset.createNonNativeAsset(
-        'ASILVER', 'GD3TLZTXQR3UTJ5L76QIG3JXEO4USOCC5XNUTAHY5SYE7AT2FAXM5XPL');
-
-    await FriendBot.fundTestAccount(keyPair.accountId);
+        'USDC', 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN');
 
     AccountResponse account =
-        await stellarSDK.accounts.account(keyPair.accountId);
+        await stellarSDK.accounts.account(keyPair!.accountId);
 
     Transaction transaction = TransactionBuilder(account)
         .addOperation(
             ChangeTrustOperationBuilder(asset, '922337203685.4775807').build())
         .build();
 
-    transaction.sign(keyPair, Network.TESTNET);
+    transaction.sign(keyPair!, Network.PUBLIC);
 
     SubmitTransactionResponse response =
         await stellarSDK.submitTransaction(transaction);
 
-    print(response.envelopeXdr);
+    setState(() {
+      result = response.envelopeXdr;
+    });
+    print(result);
   }
 
   @override
@@ -62,19 +79,22 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Tap on Establish Trustline, check console, copy output to https://laboratory.stellar.org/',
+      body: keyPair == null
+          ? const Center(child: CircularProgressIndicator.adaptive())
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Text(
+                    'Tap on Establish Trustline, check console, copy output to https://laboratory.stellar.org/',
+                  ),
+                  FilledButton.icon(
+                      label: const Text("Establish Trustline"),
+                      onPressed: () async => {await _establishTrustline()}),
+                  result == null ? const Text('waiting fo tap') : Text(result!)
+                ],
+              ),
             ),
-            FilledButton.icon(
-                label: const Text("Establish Trustline"),
-                onPressed: () async => {await _establishTrustline()})
-          ],
-        ),
-      ),
     );
   }
 }
